@@ -45,16 +45,17 @@ class EDictionary:
     def add_words(self):
         print("adding new words in dictionary, do divide russian words and examples with ','")
         while True:
-            new_e_word = input()
-            if new_e_word in self.stop_words: return
-            new_r_words = list(input().split(","))
-            if new_r_words in self.stop_words: return
-            new_examples = list(input().split(","))
-            if new_examples in self.stop_words: return
-            all_words = {new_e_word} | set(new_r_words) | set(new_examples)
-            if all_words & set(self.stop_words):
-                print("adding stopped")
-                return
+            input_tuple = []
+            for num in range(0, 3):
+                received_data = input()
+                if num > 0:
+                    received_data = received_data.split(",")
+                if received_data in self.stop_words:
+                    print("adding stopped")
+                    return
+                input_tuple.append(received_data)
+            new_e_word, (new_r_words), (new_examples) = input_tuple
+
             if new_e_word in self.words.keys():
                 for word in new_r_words:
                     if not word in self.words[new_e_word][0]:
@@ -63,25 +64,28 @@ class EDictionary:
                     if not (example+"\n") in self.words[new_e_word][1]:
                         self.words[new_e_word][1].append(example)
             else:
-                self.words.update({new_e_word:(new_r_words, new_examples)})
+                self.words.update({new_e_word: (new_r_words, new_examples)})
             print("successful add")
 
-    def show_dictionary(self):
-        print("select language (rus/eng)")
-        language = input()
-        if not language in ["rus", "eng"]:
-            print("incorrect input")
-            return
-        if language == "eng":
-            e_words = list(self.words.keys())
-            e_words.sort()
-            for word in e_words:
-                print(f"{word: <20} -> {str(self.words[word][0])}")
-            print("\nend of dictionary\n")
-            return
-        if language == "rus":
-            print("\nnot supported now\n")
-            return
+    def show_dictionary_eng(self):
+        output = list(self.words.keys())
+        output.sort()
+        for word in output:
+            print(f"{word: <20} -> {str(self.words[word][0])}")
+        print("\nend of dictionary\n")
+        return
+
+    def show_dictionary_rus(self):
+        output_dict = {}
+        for e_word, (r_words, examples) in self.words.items():
+            for word in r_words:
+                output_dict.update({word: e_word})
+        output = list(output_dict.keys())
+        output.sort()
+        for word in output:
+            print(f"{word: <20} -> {str(output_dict[word])}")
+        print("\nend of dictionary\n")
+        return
 
 
 class Menu:
@@ -98,7 +102,8 @@ class Menu:
     def __call__(self):
         while True:
             print(self.description)
-            print("0: return to previous menu")
+            if self.parent is not None:
+                print("0: return to previous menu")
             for i, element in enumerate(self.elements, start=1):
                 print(f"{i}: {element.description}")
 
@@ -129,16 +134,21 @@ class Action:
 
 if __name__ == "__main__":
     with EDictionary() as edict:
-        main_menu = Menu("This is main menu")
+        main_menu = Menu("main menu")
         printing_dictionary_menu = Menu("view dictionary")
+
         training_action = Action("training", edict.start_training)
         add_action = Action("add new words to dictionary", edict.add_words)
-        show_action = Action("output dictionary", edict.show_dictionary)
-        printing_dictionary_menu.add_element(training_action)
-        main_menu.add_element(printing_dictionary_menu)
+        show_eng_action = Action("english", edict.show_dictionary_eng)
+        show_rus_action = Action("russian", edict.show_dictionary_rus)
+
         main_menu.add_element(training_action)
         main_menu.add_element(add_action)
-        main_menu.add_element(show_action)
+        main_menu.add_element(printing_dictionary_menu)
+
+        printing_dictionary_menu.add_element(show_eng_action)
+        printing_dictionary_menu.add_element(show_rus_action)
+
         try:
             main_menu()
         except KeyboardInterrupt:
